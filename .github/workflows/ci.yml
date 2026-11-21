@@ -1,0 +1,40 @@
+name: EduPlatform CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: eduplatform_test
+          POSTGRES_USER: eduplatform
+          POSTGRES_PASSWORD: ci_test_password
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U eduplatform -d eduplatform_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Build and run tests
+        env:
+          DB_PASSWORD: ci_test_password
+        run: mvn -B clean verify
