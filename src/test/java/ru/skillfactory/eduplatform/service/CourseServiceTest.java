@@ -5,6 +5,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import ru.skillfactory.eduplatform.entity.Category;
 import ru.skillfactory.eduplatform.entity.Course;
 import ru.skillfactory.eduplatform.entity.Module;
@@ -34,30 +35,24 @@ class CourseServiceTest {
     private ModuleRepository moduleRepository;
     @Mock
     private LessonRepository lessonRepository;
+    @Mock
+    private EnrollmentRepository enrollmentRepository;
+    @Mock
+    private CourseReviewRepository courseReviewRepository;
     @InjectMocks
     private CourseService courseService;
 
     @Test
     void createCourseShouldSaveValidCourse() {
-        User teacher = new User(
-                "Алексей", "Смирнов",
-                "teacher@example.com", "hash",
-                UserRole.TEACHER
-        );
+        User teacher = new User("Алексей", "Смирнов", "teacher@example.com", "hash", UserRole.TEACHER);
         Category category = new Category("Программирование");
 
-        when(userRepository.findById(3L))
-                .thenReturn(Optional.of(teacher));
-        when(categoryRepository.findById(1L))
-                .thenReturn(Optional.of(category));
-        when(courseRepository.save(any(Course.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(userRepository.findById(3L)).thenReturn(Optional.of(teacher));
+        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
+        when(courseRepository.save(any(Course.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Course result = courseService.createCourse(
-                " Основы Java ",
-                "Введение в программирование",
-                3L, 1L, 40, startDate
-        );
+        Course result = courseService.createCourse(" Основы Java ", "Введение в программирование", 3L, 1L, 40,
+                startDate);
 
         assertEquals("Основы Java", result.getTitle());
         assertEquals(40, result.getDuration());
@@ -71,10 +66,7 @@ class CourseServiceTest {
     @Test
     void createCourseShouldRejectBlankTitle() {
         assertThrows(IllegalArgumentException.class,
-                () -> courseService.createCourse(
-                        "   ", "Описание",
-                        3L, 1L, 40, startDate
-                ));
+                () -> courseService.createCourse("   ", "Описание", 3L, 1L, 40, startDate));
 
         verifyNoInteractions(courseRepository, userRepository,
                 categoryRepository);
@@ -82,53 +74,34 @@ class CourseServiceTest {
 
     @Test
     void createCourseShouldRejectStudentAsTeacher() {
-        User student = new User(
-                "Иван", "Петров",
-                "student@example.com", "hash",
-                UserRole.STUDENT
-        );
+        User student = new User("Иван", "Петров", "student@example.com", "hash", UserRole.STUDENT);
 
-        when(userRepository.findById(1L))
-                .thenReturn(Optional.of(student));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(student));
 
         assertThrows(IllegalArgumentException.class,
-                () -> courseService.createCourse(
-                        "Основы Java", "Описание",
-                        1L, 1L, 40, startDate
-                ));
+                () -> courseService.createCourse("Основы Java", "Описание", 1L, 1L, 40, startDate));
 
         verify(courseRepository, never()).save(any(Course.class));
     }
 
     @Test
     void createCourseShouldRejectMissingCategory() {
-        User teacher = new User(
-                "Алексей", "Смирнов",
-                "teacher@example.com", "hash",
-                UserRole.TEACHER
-        );
+        User teacher = new User("Алексей", "Смирнов", "teacher@example.com", "hash", UserRole.TEACHER);
 
-        when(userRepository.findById(3L))
-                .thenReturn(Optional.of(teacher));
-        when(categoryRepository.findById(999L))
-                .thenReturn(Optional.empty());
+        when(userRepository.findById(3L)).thenReturn(Optional.of(teacher));
+        when(categoryRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThrows(NoSuchElementException.class,
-                () -> courseService.createCourse(
-                        "Основы Java", "Описание",
-                        3L, 999L, 40, startDate
-                ));
+                () -> courseService.createCourse("Основы Java", "Описание", 3L, 999L, 40, startDate));
 
         verify(courseRepository, never()).save(any(Course.class));
     }
 
     @Test
     void getByIdShouldRejectMissingCourse() {
-        when(courseRepository.findById(999L))
-                .thenReturn(Optional.empty());
+        when(courseRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThrows(NoSuchElementException.class,
-                () -> courseService.getById(999L));
+        assertThrows(NoSuchElementException.class, () -> courseService.getById(999L));
 
         verify(courseRepository).findById(999L);
     }
@@ -138,16 +111,11 @@ class CourseServiceTest {
         Course course = mock(Course.class);
         java.util.List<Module> modules = new java.util.ArrayList<>();
 
-        when(courseRepository.findById(1L))
-                .thenReturn(Optional.of(course));
+        when(courseRepository.findById(1L)).thenReturn(Optional.of(course));
         when(course.getModules()).thenReturn(modules);
-        when(moduleRepository.save(any(Module.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(moduleRepository.save(any(Module.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Module result = courseService.addModule(
-                1L, " Введение в Java ", 0,
-                "Первый модуль курса"
-        );
+        Module result = courseService.addModule(1L, " Введение в Java ", 0, "Первый модуль курса");
 
         assertEquals("Введение в Java", result.getTitle());
         assertEquals(0, result.getOrderIndex());
@@ -161,11 +129,53 @@ class CourseServiceTest {
     void deleteCourseShouldDeleteExistingCourse() {
         Course course = mock(Course.class);
 
-        when(courseRepository.findById(1L))
-                .thenReturn(Optional.of(course));
+        when(courseRepository.findById(1L)).thenReturn(Optional.of(course));
 
         courseService.deleteCourse(1L);
 
         verify(courseRepository).delete(course);
+    }
+
+
+    @Test
+    void deleteCourseShouldRejectCourseWithModules() {
+        Course course = mock(Course.class);
+        Module module = mock(Module.class);
+
+        when(courseRepository.findById(1L)).thenReturn(Optional.of(course));
+
+        when(moduleRepository.findByCourseIdOrderByOrderIndexAsc(1L)).thenReturn(java.util.List.of(module));
+
+        assertThrows(
+                DataIntegrityViolationException.class, () -> courseService.deleteCourse(1L));
+
+        verify(courseRepository, never()).delete(any(Course.class));
+    }
+
+
+    @Test
+    void deleteCourseShouldRejectCourseWithEnrollments() {
+        Course course = mock(Course.class);
+
+        when(courseRepository.findById(1L)).thenReturn(Optional.of(course));
+
+        when(enrollmentRepository.existsByCourseId(1L)).thenReturn(true);
+
+        assertThrows(DataIntegrityViolationException.class, () -> courseService.deleteCourse(1L));
+
+        verify(courseRepository, never()).delete(any(Course.class));
+    }
+
+    @Test
+    void deleteCourseShouldRejectCourseWithReviews() {
+        Course course = mock(Course.class);
+
+        when(courseRepository.findById(1L)).thenReturn(Optional.of(course));
+
+        when(courseReviewRepository.existsByCourseId(1L)).thenReturn(true);
+
+        assertThrows(DataIntegrityViolationException.class, () -> courseService.deleteCourse(1L));
+
+        verify(courseRepository, never()).delete(any(Course.class));
     }
 }

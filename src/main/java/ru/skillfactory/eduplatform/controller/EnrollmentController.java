@@ -52,4 +52,14 @@ public class EnrollmentController {
                 .map(EnrollmentResponse::from)
                 .toList();
     }
+
+    // Отписать студента от курса
+    @DeleteMapping("/students/{userId}/courses/{courseId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void unenroll(
+            @PathVariable Long userId,
+            @PathVariable Long courseId
+    ) {
+        enrollmentService.unenroll(userId, courseId);
+    }
 }

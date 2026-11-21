@@ -56,4 +56,11 @@ public class CourseController {
     public List<ModuleResponse> getCourseModules(@PathVariable Long id) {
         return courseService.getModules(id).stream().map(ModuleResponse::from).toList();
     }
+
+    // Удаление курса
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteCourse(@PathVariable Long id) {
+        courseService.deleteCourse(id);
+    }
 }

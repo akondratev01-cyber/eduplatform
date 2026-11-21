@@ -1,5 +1,6 @@
 package ru.skillfactory.eduplatform.service;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.skillfactory.eduplatform.entity.*;
@@ -20,17 +21,24 @@ public class CourseService {
     private final UserRepository userRepository;
     private final ModuleRepository moduleRepository;
     private final LessonRepository lessonRepository;
+    private final EnrollmentRepository enrollmentRepository;
+    private final CourseReviewRepository courseReviewRepository;
 
-    public CourseService(CourseRepository courseRepository, CategoryRepository categoryRepository, UserRepository userRepository, ModuleRepository moduleRepository, LessonRepository lessonRepository) {
+    public CourseService(CourseRepository courseRepository, CategoryRepository categoryRepository,
+            UserRepository userRepository, ModuleRepository moduleRepository, LessonRepository lessonRepository,
+            EnrollmentRepository enrollmentRepository, CourseReviewRepository courseReviewRepository) {
         this.courseRepository = courseRepository;
         this.categoryRepository = categoryRepository;
         this.userRepository = userRepository;
         this.moduleRepository = moduleRepository;
         this.lessonRepository = lessonRepository;
+        this.enrollmentRepository = enrollmentRepository;
+        this.courseReviewRepository = courseReviewRepository;
     }
 
     // Создание курса
-    public Course createCourse(String title, String description, Long teacherId, Long categoryId, int duration, LocalDate startDate) {
+    public Course createCourse(String title, String description, Long teacherId, Long categoryId, int duration,
+            LocalDate startDate) {
 
         if (title == null || title.isBlank()) {
             throw new IllegalArgumentException("Название курса обязательно");
@@ -89,9 +97,9 @@ public class CourseService {
 
     // Добавление модуля к курсу
     public Module addModule(Long courseId,
-                            String title,
-                            int orderIndex,
-                            String description) {
+            String title,
+            int orderIndex,
+            String description) {
 
         if (title == null || title.isBlank()) {
             throw new IllegalArgumentException("Название модуля обязательно");
@@ -149,6 +157,19 @@ public class CourseService {
     // Удаление курса
     public void deleteCourse(Long id) {
         Course course = getById(id);
+
+        if (!moduleRepository.findByCourseIdOrderByOrderIndexAsc(id).isEmpty()) {
+            throw new DataIntegrityViolationException("Нельзя удалить курс: он содержит модули");
+        }
+
+        if (enrollmentRepository.existsByCourseId(id)) {
+            throw new DataIntegrityViolationException("Нельзя удалить курс: на него записаны студенты");
+        }
+
+        if (courseReviewRepository.existsByCourseId(id)) {
+            throw new DataIntegrityViolationException("Нельзя удалить курс: у него есть отзывы");
+        }
+
         courseRepository.delete(course);
     }
 }

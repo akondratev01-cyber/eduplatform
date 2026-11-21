@@ -5,8 +5,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.skillfactory.eduplatform.dto.*;
 import ru.skillfactory.eduplatform.service.QuizService;
-import ru.skillfactory.eduplatform.dto.TakeQuizRequest;
-import ru.skillfactory.eduplatform.dto.QuizSubmissionResponse;
 
 import java.util.List;
 
@@ -83,5 +81,23 @@ public class QuizController {
                 quizId,
                 request.answers()
         ));
+    }
+
+    // Результаты всех тестов определённого студента
+    @GetMapping("/students/{studentId}/quiz-results")
+    public List<QuizSubmissionResponse> getStudentResults(@PathVariable Long studentId) {
+        return quizService.getStudentResults(studentId)
+                .stream()
+                .map(QuizSubmissionResponse::from)
+                .toList();
+    }
+
+    // Результаты прохождения определённого теста
+    @GetMapping("/quizzes/{quizId}/results")
+    public List<QuizSubmissionResponse> getQuizResults(@PathVariable Long quizId) {
+        return quizService.getQuizResults(quizId)
+                .stream()
+                .map(QuizSubmissionResponse::from)
+                .toList();
     }
 }

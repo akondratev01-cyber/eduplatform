@@ -6,7 +6,7 @@ import java.time.LocalDate;
 
 public record CreateCourseRequest(
         @NotBlank(message = "Название курса обязательно")
-        @Size(max = 255, message = "Название курса не может превышать 255 символов")
+        @Size(max = 200, message = "Название курса не может превышать 200 символов")
         String title,
         String description,
         @NotNull(message = "Необходимо указать преподователя")
