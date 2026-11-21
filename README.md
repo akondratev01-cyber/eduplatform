@@ -136,11 +136,30 @@ mvn spring-boot:run "-Dspring-boot.run.profiles=demo"
 | `GET` | `/api/lessons/{lessonId}/assignments` | Задания урока |
 | `POST` | `/api/assignments/{assignmentId}/submissions` | Отправка решения |
 | `PATCH` | `/api/submissions/{submissionId}/grade` | Оценивание решения |
+| `GET` | `/api/students/{studentId}/submissions` | Решения студента |
+| `GET` | `/api/assignments/{assignmentId}/submissions` | Решения по заданию |
 | `POST` | `/api/modules/{moduleId}/quizzes` | Создание теста |
 | `GET` | `/api/modules/{moduleId}/quizzes` | Тесты модуля |
 | `POST` | `/api/quizzes/{quizId}/questions` | Добавление вопроса |
 | `POST` | `/api/questions/{questionId}/options` | Добавление варианта ответа |
 | `POST` | `/api/quizzes/{quizId}/submissions` | Прохождение теста и получение оценки |
+| `DELETE` | `/api/courses/{id}` | Удаление курса без связанных модулей, записей студентов и отзывов |
+| `DELETE` | `/api/enrollments/students/{userId}/courses/{courseId}` | Отписка студента от курса |
+| `GET` | `/api/students/{studentId}/quiz-results` | Результаты тестирования студента |
+| `GET` | `/api/quizzes/{quizId}/results` | Результаты прохождения конкретного теста |
+
+
+### Удаление курсов
+
+Удаление курса выполняется запросом `DELETE /api/courses/{id}`.
+
+- `204 No Content` — курс успешно удалён.
+- `404 Not Found` — курс с указанным ID не найден.
+- `409 Conflict` — удаление запрещено из-за связанных модулей, записей студентов или отзывов.
+
+Перед удалением сервис проверяет наличие зависимых данных. Это позволяет избежать случайного удаления учебной информации.
+
+Отписка студента от курса выполняется запросом `DELETE /api/enrollments/students/{userId}/courses/{courseId}`. Успешный запрос возвращает `204 No Content`.
 
 ### Примеры JSON-запросов
 
@@ -191,11 +210,15 @@ mvn spring-boot:run "-Dspring-boot.run.profiles=demo"
 
 ## Автоматические тесты
 
-Реализовано **40 автотестов**, успешно выполненных командой `mvn clean verify`:
+Реализовано **57 автоматических теста**, успешно выполненных командой `mvn clean verify`:
 
-- 34 модульных теста сервисов (`UserService`, `CourseService`, `EnrollmentService`, `AssignmentService`, `QuizService`) с JUnit и Mockito;
-- 5 интеграционных тестов репозиториев и CRUD через настоящий PostgreSQL;
-- 1 тест загрузки контекста Spring Boot.
+- **37 модульных тестов сервисов** (`UserService`, `CourseService`, `EnrollmentService`, `AssignmentService`, `QuizService`) с использованием JUnit и Mockito;
+- **10 тестов REST-контроллеров** (`CourseControllerTest`, `EnrollmentControllerTest`, `QuizControllerTest`) с использованием MockMvc;
+- **1 тест валидации DTO** (CourseControllerTest, EnrollmentControllerTest, QuizControllerTest, AssignmentControllerTest) с использованием MockMvc;
+- **8 интеграционных тестов репозиториев** с использованием PostgreSQL;
+- **1 тест загрузки контекста Spring Boot** (`EduplatformApplicationTests`).
+
+Все 57 теста успешно пройдены без ошибок и пропусков.
 
 Интеграционные тесты используют профиль `test` и **отдельную базу** `eduplatform_test`. Перед первым запуском тестов создайте её:
 
@@ -258,12 +281,12 @@ docker compose stop
 В проекте настроен автоматизированный процесс непрерывной интеграции с помощью GitHub Actions.
 Файл конфигурации: .github/workflows/ci.yml.
 При отправке изменений (push) и создании pull request выполняются:
-1. Запуск PostgreSQL 16 с отдельной тестовой базой eduplatform_test..
+1. Запуск PostgreSQL 16 с отдельной тестовой базой eduplatform_test.
 2. Настройка **Java 21** (Eclipse Temurin).
 3. Кеширование зависимостей Maven.
 4. Выполнение команды mvn **-B clean verify**.
 5. Автоматическая проверка модульных и интеграционных тестов и сборка **JAR**.
 
-Локально успешно пройдены 40 автоматических тестов. Результат выполнения GitHub Actions проверяется во вкладке **Actions** репозитория после публикации изменений.
+Локально успешно пройдены **57 автоматических теста**. Все 57 автоматических теста успешно пройдены локально и в GitHub Actions.
 
 В проекте реализована непрерывная интеграция (CI) с использованием GitHub Actions. Развёртывание приложения выполняется локально через Docker Compose. Автоматическое развёртывание (CD) не предусмотрено рамками учебного проекта.

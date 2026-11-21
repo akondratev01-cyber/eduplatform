@@ -69,4 +69,27 @@ public class AssignmentController {
                 request.feedback()
         ));
     }
+
+
+    // Все решения определённого студента
+    @GetMapping("/students/{studentId}/submissions")
+    public List<SubmissionResponse> getStudentSubmissions(
+            @PathVariable Long studentId
+    ) {
+        return assignmentService.getStudentSubmissions(studentId)
+                .stream()
+                .map(SubmissionResponse::from)
+                .toList();
+    }
+
+    // Все решения определённого задания
+    @GetMapping("/assignments/{assignmentId}/submissions")
+    public List<SubmissionResponse> getAssignmentSubmissions(
+            @PathVariable Long assignmentId
+    ) {
+        return assignmentService.getAssignmentSubmissions(assignmentId)
+                .stream()
+                .map(SubmissionResponse::from)
+                .toList();
+    }
 }
